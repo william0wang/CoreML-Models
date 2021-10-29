@@ -1,5 +1,68 @@
 # CoreML-Models
-Converted CoreML Models
+
+## Convert AnimeGANv2 to Core ML
+
+[AnimeGANv2](https://github.com/TachibanaYoshino/AnimeGANv2)
+
+1. Save the graph in pbtxt format.
+
+```python
+   tf.train.write_graph(sess.graph_def, './', 'animegan.pbtxt')
+```
+2. Find the name of the output node.
+
+```python
+   graph = sess.graph
+   print([node.name for node in graph.as_graph_def().node])
+```
+
+3. Make a frozen graph.
+
+```python
+   from tensorflow.python.tools.freeze_graph import freeze_graph
+   import tfcoreml
+
+   graph_def_file = 'animegan.pbtxt'
+   checkpoint_file = 'checkpoint/generator_Hayao_weight/Hayao-64.ckpt'
+   frozen_model_file = './frozen_model.pb'
+   output_node_names = 'generator/G_MODEL/out_layer/Tanh'
+
+   freeze_graph(input_graph=graph_def_file,
+               input_saver="",
+               input_binary=False,
+               input_checkpoint=checkpoint_file,
+               output_node_names=output_node_names,
+               restore_op_name="save/restore_all",
+               filename_tensor_name="save/Const:0",
+               output_graph=frozen_model_file,
+               clear_devices=True,
+               initializer_nodes="")
+```
+
+4. Convert with tfcoreml.
+
+```python
+   input_tensor_shapes = {'test:0':[1, 256, 256, 3]} # batch size is 1
+   # Output CoreML model path
+   coreml_model_file = './animegan.mlmodel'
+   output_tensor_names = ['generator/G_MODEL/out_layer/Tanh:0']
+   # Call the converter
+   coreml_model = tfcoreml.convert(
+         tf_model_path='frozen_model.pb',
+         mlmodel_path=coreml_model_file,
+         input_name_shape_dict=input_tensor_shapes,
+         output_feature_names=output_tensor_names,
+         image_input_names='test:0',
+         red_bias=-1,
+         green_bias=-1,
+         blue_bias=-1,
+         image_scale=2/255,
+         minimum_ios_deployment_target='12'
+         )
+```
+
+
+## Converted CoreML Models
 
 **Image Classifier**
 | Google Drive Link | Size | Original Project |
